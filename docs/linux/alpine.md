@@ -2,7 +2,7 @@
 
 <img src="https://cdn.simpleicons.org/alpinelinux" alt="Alpine Linux" width="48"/>
 
-Alpine Linux works on the BC-250, but it is a manual setup aimed at advanced users. Based on real community install history, Alpine is a good fit for lean server builds, custom desktop setups, and users who prefer OpenRC over systemd.
+Alpine Linux works on the BC-250, but setup is more manual than on mainstream desktop distributions. It is best suited to advanced users who want a lean server build, efficient compute-focused system, custom desktop environment, or OpenRC-based installation with minimal overhead.
 
 **Status:** Working with manual setup  
 **Difficulty:** Advanced  
@@ -16,7 +16,7 @@ Alpine Linux works on the BC-250, but it is a manual setup aimed at advanced use
 ### Advantages
 
 - Very small base system
-- Low RAM and power usage (150mb & 35W)
+- Low RAM and power usage (150 MB & 35 W)
 - OpenRC instead of systemd
 - Good fit for server or appliance-style deployments
 - Easy to keep lean if you only install what you need
@@ -39,7 +39,7 @@ Alpine Linux works on the BC-250, but it is a manual setup aimed at advanced use
 Before installing Alpine, ensure BIOS is configured:
 
 1. Flash modified BIOS (P3.00 or later recommended)
-2. Set VRAM allocation to 512MB dynamic (recommended for shared VRAM / UMA, see [VRAM Configuration](../bios/vram.md##option-1-512mb-dynamic))
+2. Set VRAM allocation to 512MB dynamic (recommended for shared VRAM / UMA, see [VRAM Configuration](../bios/vram.md#option-1-512mb-dynamic))
 
 See [BIOS Flashing Guide](../bios/flashing.md).
 
@@ -80,10 +80,15 @@ sudo apk upgrade
 
 ### 2. Install a Working Kernel
 
-Community history shows Alpine working with `linux-stable`. For kernel recommendations, see [Kernel Configuration](kernel.md):
+Before installing the kernel, review the known-broken BC-250 ranges in [Kernel Configuration](kernel.md).
+
+!!! warning "Kernel Selection Still Matters"
+    Avoid known-broken BC-250 kernel ranges such as 6.15.0-6.15.6 and 6.17.8-6.17.10. Prefer confirmed working releases such as 6.18.18 LTS, 6.19.x stable, or 6.17.11+ where available.
+
+Alpine's canonical kernel package is `linux-lts`:
 
 ```bash
-sudo apk add linux-stable
+sudo apk add linux-lts
 ```
 
 Reboot after kernel installation:
@@ -98,8 +103,7 @@ After reboot, confirm the active kernel:
 uname -a
 ```
 
-!!! warning "Kernel Selection Still Matters"
-    As with other distros, avoid known-broken BC-250 kernel ranges such as 6.15.0-6.15.6 and 6.17.8-6.17.10. Prefer confirmed working releases such as 6.18.18 LTS, 6.19.x stable, or 6.17.11+ where available.
+If `uname -r` reports a kernel in one of the broken ranges above, install a known-good `linux-lts` build before continuing.
 
 ---
 
@@ -109,7 +113,7 @@ Setup drivers and firmware:
 
 ```bash
 sudo apk add linux-firmware-amdgpu # base amdgpu drivers
-sudo apk add mesa mesa-gl mesa-glx mesa-dri-gallium # mesa drivers
+sudo apk add mesa mesa-gl mesa-dri-gallium # mesa drivers
 sudo apk add mesa-vulkan-ati vulkan-loader vulkan-tools # vulkaninfo ...
 sudo apk add mesa-demos # glxinfo ...
 ```
@@ -122,16 +126,43 @@ sudo apk add vulkan-loader-dev glslang-dev spirv-headers shaderc cmake
 
 ---
 
-### 4. Configure GRUB and Rebuild Boot Files
+### 4. Configure the Bootloader and Rebuild Boot Files
 
-If you added `nomodeset` during installation, remove it from GRUB after Mesa and Vulkan are working:
+If you added `nomodeset` during installation, remove it from your bootloader configuration after Mesa and Vulkan are working.
+
+See [Environment Variables](../drivers/environment.md#mitigationsoff) for details on `mitigations=off`.
+
+#### Option A: extlinux (Alpine default)
+
+Most Alpine installs use `extlinux` by default. Edit:
+
+```bash
+sudo nano /etc/update-extlinux.conf
+```
+
+Use a performance-oriented default line such as:
+
+```bash
+default_kernel_opts="quiet mitigations=off"
+```
+
+Then rebuild boot files:
+
+```bash
+sudo mkinitfs
+sudo update-extlinux
+sudo reboot
+```
+
+#### Option B: GRUB (optional)
+
+If your Alpine install uses GRUB instead, make sure GRUB is already installed and configured first (`grub` plus `grub-efi` for UEFI or `grub-bios` for legacy BIOS). Then edit:
 
 ```bash
 sudo nano /etc/default/grub
 ```
 
-See [Environment Variables](../drivers/environment.md#mitigationsoff) for details on `mitigations=off`.
-Use a performance-oriented default line such as:
+Use:
 
 ```bash
 GRUB_CMDLINE_LINUX_DEFAULT="quiet mitigations=off"
@@ -141,7 +172,7 @@ Then rebuild boot files:
 
 ```bash
 sudo mkinitfs
-sudo update-grub
+sudo grub-mkconfig -o /boot/grub/grub.cfg
 sudo reboot
 ```
 
@@ -166,7 +197,7 @@ vulkaninfo --summary
 
 ### 6. Install the GPU Governor
 
-The BC-250 still benefits heavily from a governor on Alpine. Your history shows a working manual setup using the SMU branch.
+The BC-250 still benefits heavily from a governor on Alpine. Community testing shows a working manual setup using the SMU branch.
 
 Install build dependencies:
 
@@ -250,12 +281,14 @@ sudo rc-service cyan-skillfish-governor-smu restart
 - `libdrm-dev` was present during build  
 - The binary is installed in `/usr/local/bin/`  
 - The config file exists at `/etc/cyan-skillfish-governor-smu/config.toml`  
-- Make sure that higher frequencies do not use less mV  
+- Voltage tuning must remain monotonic: higher frequencies should not use less mV.
 
 ```bash
 sudo rc-service cyan-skillfish-governor-smu status
 sudo /usr/local/bin/cyan-skillfish-governor-smu --verbose /etc/cyan-skillfish-governor-smu/config.toml # to debug
 ```
+
+---
 
 ## Community Resources
 

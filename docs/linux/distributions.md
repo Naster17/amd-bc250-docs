@@ -244,7 +244,7 @@ pacman -S base-devel cmake git mesa vulkan-radeon
 **Status:** Viable, but lightly tested and fully manual
 - **Base:** Alpine Linux
 - **Init:** OpenRC
-- **Kernel:** `linux-lts` recommended
+- **Kernel:** `linux-lts` recommended (canonical Alpine kernel package)
 - **Mesa:** Use a branch with Mesa 25.1+ available
 
 ### Pros
