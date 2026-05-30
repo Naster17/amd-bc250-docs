@@ -30,6 +30,7 @@ Real-world power measurements from community testing:
 | Gaming (Heavy) | 160-200W | Demanding AAA titles |
 | Cyberpunk 2077 (RT) | **235W** | Maximum observed (stock) |
 | Gaming (with GPU freq patch) | **250W+** | Can exceed 235W with kernel patch |
+| Sustained 40 CU compute @ 2 GHz | **220-230W** | `llama-bench` 10 min, see [40 CU Unlock](../system/40cu-unlock.md) |
 | Furmark (Stock) | 250W | Stress test (unrealistic) |
 | Furmark (OC to 2230 MHz) | **320W** | Extreme stress test |
 
@@ -37,6 +38,18 @@ Real-world power measurements from community testing:
     Installing the GPU governor can reduce idle power consumption by 20-30W by dynamically scaling GPU frequency.
 
 [See GPU Governor Guide](../system/governor.md)
+
+### PSU Headroom Under Sustained Load
+
+The peak board draws in the table above translate to roughly 280-300 W at the wall once you account for PSU efficiency. For the recommended 300 W options (Mean Well LOP-300-12, FlexATX 500W variants), this means:
+
+| PSU | Continuous rating | Headroom at 220 W board / ~280 W wall |
+|-----|-------------------|----------------------------------------|
+| Mean Well LOP-300-12 | 300 W (12 V × 25 A) | 93% load, no margin for transients |
+| FSP FSP500-30AS (FlexATX 500W) | 500 W (12 V rail ~40 A) | 56% load, comfortable |
+| Dell D220P / D250AD | 220-250 W | **Over rated capacity**, do not use |
+
+A 300 W PSU works for stock 24 CU gaming and for capped 40 CU (1500 MHz) compute, but it's borderline for sustained 40 CU at 2 GHz. If you plan to run sustained full-CU compute loads (LLM serving, long stable-diffusion batches), a 500 W FlexATX or a 400 W+ ATX is the safer floor.
 
 ## Recommended PSU Options
 

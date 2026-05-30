@@ -34,6 +34,27 @@ The BC-250 requires active cooling for gaming and desktop use. This guide covers
 !!!warning "Thermal Throttling"
     Above 85°C GPU temperature, the system may throttle performance. Above 90°C, instability and crashes can occur.
 
+## Sustained Load Reality
+
+The temperature targets above are for normal gaming, where load comes in bursts. Sustained compute (looped `llama-bench`, long stable-diffusion runs, anything that pegs the GPU for tens of minutes) is a different regime, especially after enabling the [40 CU unlock](../system/40cu-unlock.md).
+
+Measured on a BC-250 with the stock heatsink and dual Arctic P12 Max in push-pull, 10-minute sustained `llama-bench` at 40 CU / 2 GHz:
+
+| Metric | Average | Peak |
+|--------|---------|------|
+| GPU edge | 89.6 °C | 107 °C |
+| Package power | 136 W | 223 W |
+| CPU | 96.7 °C | 100 °C (TJmax) |
+| VRM MOSFETs | 57 °C | 58.5 °C |
+| Fan speed | ~2950 RPM | 2977 RPM (ceiling) |
+
+Sustained throughput drops ~10% over the run as the package throttles. Stock heatsink plus dual P12 Max is **not enough headroom for sustained 40 CU at 2 GHz**. VRMs are nowhere near their limit; the bottleneck is the heatsink shedding the heat. Two practical options:
+
+- Cap the governor at 1500 MHz (see [GPU Governor](../system/governor.md)). The 40 CU unlock still gives ~1.5x compute scaling at this frequency, with temps holding around 83 °C, which the dual P12 Max can sustain indefinitely.
+- Upgrade cooling. The stock heatsink is the limiter, not the fans. Bigger fin area, better paste, and case airflow over the backplate all help.
+
+For 24 CU stock at gaming workloads the dual P12 Max is comfortable. The thermal reality only bites under sustained full-CU compute load.
+
 ## Recommended Cooling Solutions
 
 ### Option 1: Arctic P12 Max / P12 Pro (Most Popular)
