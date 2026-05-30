@@ -225,6 +225,9 @@ Sustained throughput drops about 10% over 10 minutes (3034 → 2835 tok/s) as th
 
 **Bottom line:** if you want to run a sustained overclock across all 40 CUs, you need effective cooling. Stock heatsinks and entry-level dual-fan setups will throttle under sustained load. With a 1500 MHz governor cap the heat stays manageable on the configuration above and the board runs comfortably. The unlock itself is solid: 25 minutes of looped Vulkan compute correctness testing produced zero `fp_errors`, zero `int_errors`, no amdgpu hangs, no resets, no oops. The thermal envelope is the constraint, not the silicon.
 
+!!!info "Running LLM / AI workloads on BC-250?"
+    [akandr/bc250](https://github.com/akandr/bc250) is a community deep-dive on running Ollama + Vulkan inference on this hardware (35B MoE at 37.5 tok/s, FLUX.2 image generation, 33 model benchmarks, GTT/TTM memory tuning, ROCm-vs-Vulkan analysis). If sustained AI inference is your use case, that guide covers everything this page intentionally skips (model selection, quantization impact, KV cache sizing, long-context behaviour).
+
 ## Selective CU Masking
 
 Not every unlocked CU may be silicon-healthy on every board. Boards with scattered (non-contiguous) harvest patterns may have defective CUs that pass enumeration but fail compute. duggasco ships a per-WGP health test that reboots into each WGP configuration in isolation and runs correctness checks:

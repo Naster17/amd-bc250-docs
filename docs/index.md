@@ -4,7 +4,7 @@ Documentation for the **AMD BC250** board — an ex-mining board featuring a cut
 
 ## What is the BC250?
 
-The AMD BC250 is a compact motherboard built around AMD's "Cyan Skillfish" APU, originally designed for cryptocurrency mining. The community has transformed this hardware into a capable Linux gaming and desktop system.
+The AMD BC250 is a compact motherboard built around AMD's "Cyan Skillfish" APU, originally designed for cryptocurrency mining. The community has transformed this hardware into a capable Linux gaming and desktop system, and more recently into a low-cost home AI server (Ollama + Vulkan inference up to 35B MoE models, see [akandr/bc250](https://github.com/akandr/bc250) for that use case).
 
 ### Key Specifications
 
