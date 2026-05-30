@@ -148,6 +148,7 @@ nav:
 
   - System Configuration:
     - GPU Governor: system/governor.md
+    - 40 CU Unlock: system/40cu-unlock.md
     - Sensors & Monitoring: system/sensors.md
     - Power Management: system/power.md
 
