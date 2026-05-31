@@ -12,9 +12,14 @@ Before troubleshooting specific issues, run these commands to check your system 
 # Check GPU frequency and temperature
 sensors
 
-# Check GPU utilization and frequency
-watch -n 1 cat /sys/devices/pci0000:00/0000:00:08.1/0000:01:00.0/gpu_busy_percent
-watch -n 1 cat /sys/class/drm/card1/device/pp_dpm_mclk
+# Check GPU clock state (live)
+# Pick the right card: ls -l /sys/class/drm/ | grep card  (usually card0 for the BC-250)
+watch -n 1 cat /sys/class/drm/card0/device/pp_dpm_sclk
+watch -n 1 cat /sys/class/drm/card0/device/pp_dpm_mclk
+
+# Note: `gpu_busy_percent` does NOT work on the BC-250 (amdgpu driver leaves
+# the metric field uninitialised, hence the famous MangoHud 655% bug).
+# See the MangoHud admonition further down for the fix and root cause.
 
 # Check if GPU driver is loaded
 lspci -k | grep -A 3 VGA
@@ -242,12 +247,12 @@ sudo grub-mkconfig -o /boot/grub/grub.cfg    # Arch
 ### Check GPU Utilization
 
 ```bash
-# Monitor GPU load percentage
-watch -n 1 cat /sys/devices/pci0000:00/0000:00:08.1/0000:01:00.0/gpu_busy_percent
+# Monitor GPU clock state under load (proxy for utilisation since gpu_busy_percent is broken on BC-250)
+watch -n 1 cat /sys/class/drm/card0/device/pp_dpm_sclk
 
-# If GPU is at 100% constantly = thermal throttling or insufficient performance
-# If GPU is at 30-50% = governor not scaling properly, or game/driver issue
-# If GPU is at 0-10% = not using GPU (software rendering)
+# If the * marker sits at the lowest level under a heavy game = governor not boosting
+# If it sits at the top level = GPU is loaded; check temps and thermal throttle
+# Alternative: `radeontop` for a busier overview (apt/dnf/pacman install radeontop)
 ```
 
 ### Issue: Governor Not Installed
@@ -708,7 +713,7 @@ Use this checklist to verify your system is properly configured:
 **Quick test:**
 ```bash
 # This should show GPU scaling dynamically
-watch -n 0.5 'cat /sys/class/drm/card1/device/pp_dpm_mclk && cat /sys/devices/pci0000:00/0000:00:08.1/0000:01:00.0/gpu_busy_percent'
+watch -n 0.5 'cat /sys/class/drm/card0/device/pp_dpm_sclk && cat /sys/class/drm/card0/device/pp_dpm_mclk'
 
 # Run a game or benchmark
 # Frequency should scale from ~1000MHz idle to 2000+MHz under load
