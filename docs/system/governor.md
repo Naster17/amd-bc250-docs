@@ -195,25 +195,73 @@ See [github.com/filippor/cyan-skillfish-governor](https://github.com/filippor/cy
 **Config File:** `/etc/cyan-skillfish-governor-smu/config.toml`
 
 **Example Configuration:**
+
+The `smu` branch uses a section-based TOML schema, not the older `safe-points = [...]` array. Defaults shown below match the upstream `default-config.toml` with the voltage curve flattened at 1000 mV to match the community-validated 2150-2200 MHz ceiling.
+
 ```toml
-# Define voltage points (frequency MHz, voltage mV)
-safe-points = [
-    [1000, 700],   # 1000 MHz @ 700 mV (idle)
-    [1500, 900],   # 1500 MHz @ 900 mV
-    [2000, 1000],  # 2000 MHz @ 1000 mV (gaming)
-    [2150, 1000],  # 2150 MHz @ 1000 mV (boost, community-validated ceiling)
-    [2200, 1000],  # 2200 MHz @ 1000 mV (max stable on stock cooling)
-]
+# Sampling and adjust periods, microseconds
+[timing.intervals]
+sample = 500
+adjust = 200_000
 
-# GPU load target range (70-95%)
-[load_target]
-min = 0.70
-max = 0.95
+# GPU usage metric patching (fixes MangoHud 655% bug on BC-250)
+[gpu-usage]
+fix-metrics = true
+method = "busy-flag"   # "busy-flag" or "process"
+flush-every = 10
 
-# Timing configuration
+# Frequency/voltage backend
+[gpu]
+set-method = "smu"     # "smu" or "kernel"
+
+# Optional D-Bus interface (used by cyan-skillfish-performance-mode helper)
+[dbus]
+enabled = true
+
+# Frequency change rate, MHz per millisecond
+[timing.ramp-rates]
+normal = 1
+burst = 50
+
+# Burst behaviour and step-down threshold, in samples
 [timing]
-interval_ms = 50       # Sampling interval
-burst_samples = 20     # Samples before burst to max
+burst-samples = 60
+down-events = 5
+
+# Minimum frequency change worth applying, MHz
+[frequency-thresholds]
+adjust = 10
+
+# GPU load target range as fractions, not percents
+[load-target]
+upper = 0.80
+lower = 0.65
+
+# Thermal limits, °C
+[temperature]
+throttling = 85
+throttling_recovery = 75
+
+# Voltage curve, each point is one [[safe-points]] table
+[[safe-points]]
+frequency = 1000   # MHz
+voltage = 800      # mV
+
+[[safe-points]]
+frequency = 1500
+voltage = 900
+
+[[safe-points]]
+frequency = 2000
+voltage = 1000     # gaming
+
+[[safe-points]]
+frequency = 2150
+voltage = 1000     # community-validated boost ceiling
+
+[[safe-points]]
+frequency = 2200
+voltage = 1000     # max stable on stock cooling
 ```
 
 !!!tip "Voltage ceiling at 1000 mV"
@@ -229,24 +277,47 @@ sudo systemctl restart cyan-skillfish-governor-smu
 **Config File:** `/etc/cyan-skillfish-governor-tt/config.toml`
 
 **Example Configuration:**
+
+The `tt` branch uses the same section-based schema as `smu`, minus the SMU-specific `[gpu-usage]`, `[gpu]`, and `[dbus]` sections (TT goes through sysfs, not SMU firmware calls).
+
 ```toml
-# Define voltage points (frequency MHz, voltage mV)
-safe-points = [
-    [1000, 700],   # 1000 MHz @ 700 mV (idle)
-    [1500, 900],   # 1500 MHz @ 900 mV
-    [2000, 1000],  # 2000 MHz @ 1000 mV (gaming)
-    [2150, 1000],  # 2150 MHz @ 1000 mV (max boost, community-validated)
-]
+[timing.intervals]
+sample = 500
+adjust = 200_000
 
-# GPU load target range (70-95%)
-[load_target]
-min = 0.70
-max = 0.95
+[timing.ramp-rates]
+normal = 1
+burst = 50
 
-# Timing configuration
 [timing]
-interval_ms = 50       # Sampling interval
-burst_samples = 20     # Samples before burst to max
+burst-samples = 60
+
+[frequency-thresholds]
+adjust = 10
+
+[load-target]
+upper = 0.80
+lower = 0.65
+
+[temperature]
+throttling = 85
+throttling_recovery = 75
+
+[[safe-points]]
+frequency = 1000
+voltage = 700
+
+[[safe-points]]
+frequency = 1500
+voltage = 900
+
+[[safe-points]]
+frequency = 2000
+voltage = 1000
+
+[[safe-points]]
+frequency = 2150
+voltage = 1000
 ```
 
 !!!danger "Minimum Voltage: 700mV"
@@ -467,24 +538,27 @@ sensors
 
 If you're hitting 95-100 °C, the fix is cooling (better fans, repaste, case airflow), not voltage. Adding voltage when you're thermal-limited makes things worse.
 
-**2. Reduce max frequency** if your cooling is at its limit:
+**2. Reduce max frequency** if your cooling is at its limit. Cap the curve by dropping the high-frequency `[[safe-points]]` blocks:
 ```toml
 # Edit /etc/cyan-skillfish-governor-smu/config.toml
-safe-points = [
-    [1000, 700],
-    [1500, 900],
-    [2000, 1000],  # cap here, drop the 2150/2200 points
-]
+[[safe-points]]
+frequency = 1000
+voltage = 700
+
+[[safe-points]]
+frequency = 1500
+voltage = 900
+
+[[safe-points]]
+frequency = 2000   # cap here, drop the 2150/2200 entries
+voltage = 1000
 ```
 
-**3. Only then consider voltage.** If temps are fine but you still crash at 2150-2200 MHz, your specific board may need a small bump:
+**3. Only then consider voltage.** If temps are fine but you still crash at 2150-2200 MHz, your specific board may need a small bump on the top point only:
 ```toml
-safe-points = [
-    [1000, 700],
-    [1500, 900],
-    [2000, 1000],
-    [2200, 1025],  # try +25 mV at the top only
-]
+[[safe-points]]
+frequency = 2200
+voltage = 1025   # try +25 mV at the top only
 ```
 
 Going beyond 1025 mV at 2200 MHz is rarely a stability fix and almost always just adds heat. If +25 mV doesn't help, drop the top point and live with 2 GHz.
@@ -497,11 +571,12 @@ Going beyond 1025 mV at 2200 MHz is rarely a stability fix and almost always jus
 
 **If CPU usage > 2%:**
 
-**Check polling interval:**
+**Check polling interval.** The `smu` branch measures intervals in microseconds under `[timing.intervals]`. Raise `sample` (and proportionally `adjust`) to reduce CPU overhead:
 ```toml
 # Edit /etc/cyan-skillfish-governor-smu/config.toml
-[timing]
-interval_ms = 100  # Increase from 50
+[timing.intervals]
+sample = 1000      # was 500 µs, doubling halves the sample rate
+adjust = 400_000   # keep the ratio with sample (default is sample * 400)
 ```
 
 **Check for bugs:**
@@ -563,13 +638,21 @@ echo vc 0 2100 1050 > /sys/devices/pci0000:00/0000:00:08.1/0000:01:00.0/pp_od_cl
 
 **Step 2: Update Governor Config**
 
+Add (or adjust) `[[safe-points]]` blocks. Each block is one (frequency, voltage) point on the curve:
+
 ```toml
 # /etc/cyan-skillfish-governor-smu/config.toml
-safe-points = [
-    [1000, 700],
-    [2000, 1000],
-    [2100, 1050],  # Your stable frequency/voltage
-]
+[[safe-points]]
+frequency = 1000
+voltage = 700
+
+[[safe-points]]
+frequency = 2000
+voltage = 1000
+
+[[safe-points]]
+frequency = 2100   # your stable test frequency
+voltage = 1050     # and the voltage that held it
 ```
 
 **Step 3: Restart and Test**
