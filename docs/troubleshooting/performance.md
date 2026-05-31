@@ -569,6 +569,24 @@ mangohud %command%
 # Or global config in ~/.config/MangoHud/MangoHud.conf
 ```
 
+!!! warning "MangoHud reports 655% GPU usage on BC-250"
+
+    The BC-250 `amdgpu` driver does not populate the GPU activity field of `/sys/.../gpu_metrics`. Bytes 0x1C-0x1D stay at `0xFFFF`, MangoHud reads that as 65535 and divides by 100, so the overlay shows **655%** GPU load. Reproduced on Fedora 43, kernel `7.0.9-105.fc43.x86_64`, MangoHud 0.8.2.
+
+    Fix: run `cyan-skillfish-governor-smu` (smu branch) with its defaults. The governor bind-mounts a writable tmpfs file over `gpu_metrics` and writes a sampled activity value (busy-flag method) into byte 0x1C every cycle. Anything that reads `gpu_metrics` (MangoHud, `radeontop`, etc.) then sees a sane percent. No MangoHud config change required.
+
+    ```toml
+    # /etc/cyan-skillfish-governor-smu/config.toml — defaults shown for reference
+    [gpu-usage]
+    fix-metrics = true
+    method = "busy-flag"
+    flush-every = 10
+    ```
+
+    Verified live: with the governor stopped, bytes at offset 0x1C of `gpu_metrics` read `ffff`. With the governor running, the same bytes read `0000` at idle (0%). Bind mount is visible in `/proc/self/mountinfo` while the service is active.
+
+    Source: [filippor/cyan-skillfish-governor `smu` branch — `src/gpu_usage_fix.rs`](https://github.com/filippor/cyan-skillfish-governor/blob/smu/src/gpu_usage_fix.rs).
+
 **Radeontop (terminal):**
 ```bash
 sudo dnf install radeontop
