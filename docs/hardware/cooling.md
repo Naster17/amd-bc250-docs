@@ -257,7 +257,7 @@ The thermal paste on used BC-250 boards is often dried out.
 
 ### Memory Thermal Pad Replacement
 
-GDDR6 memory chips on the underside can run hot under sustained load.
+All the GDDR6 sits on the underside of the board, opposite the APU. That side has no fixed heatsink and can run hot under sustained load.
 
 **Symptoms of hot memory:**
 - System crashes during extended gaming
@@ -267,7 +267,7 @@ GDDR6 memory chips on the underside can run hot under sustained load.
 **Solution:**
 1. Remove board from case
 2. Remove old thermal pads (if present)
-3. Apply new thermal pads (**1.5mm on front of board, 2.0mm on back**)
+3. Apply new **2mm** thermal pads on the underside memory chips (verify the gap on your board first)
 4. Attach aluminum plate or heatsink to underside
 5. Optional: Add fan for active cooling
 

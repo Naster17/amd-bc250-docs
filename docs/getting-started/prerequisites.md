@@ -142,10 +142,12 @@ Required files:
 
 **Thermal Pads (for VRAM)**
 
-The backplate gets hot (GDDR6 chips underneath).
+All the GDDR6 sits on the underside of the board, opposite the APU, and that side gets hot.
 
-- **Size:** 1mm or 1.5mm thickness
+- **Size:** 2mm thickness (verify the gap on your board first)
 - **Option:** Add heatsink to backplate for passive cooling
+
+See [Memory Thermal Pad Replacement](../hardware/cooling.md#memory-thermal-pad-replacement) for the full procedure.
 
 ### Storage
 
