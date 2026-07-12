@@ -29,7 +29,7 @@ cd bc250_memcfg
 make
 sudo ./bc250memcfg UMA_SIZE 512
 ```
-Replace '512' with the desired VBIOS size in MB.
+Replace '512' with the desired VRAM size in MB.
 - 256 = 256 MB
 - 512 = 512 MB
 - 1024 = 1 GB
