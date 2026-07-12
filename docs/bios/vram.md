@@ -16,7 +16,7 @@ Control of the RAM/VRAM split is ordinarily not exposed to the user.
 However, there are ways to modify it.
 
 
-## Option 1: Memcfg Utility
+## Memcfg Utility
 
 You can set the VRAM split from a running Linux system by running a program: [fanoush/bc250_memcfg](https://github.com/fanoush/bc250_memcfg).
 
@@ -39,33 +39,19 @@ Replace '512' with the desired VBIOS size in MB.
 - 8192 = 8 GB
 - 10240 = 10 GB
 - 12288 = 12 GB
+- **Note:** Linux won't boot with 2GB VRAM split for some reason. All other values seem OK.
 
 Reboot to apply the change.
 
 Even though this is a Linux program, the change is stored into CMOS, so it only needs to be ran 
 once and not at every boot.
 
-## Option 2: Modified BIOS
+## A note on modified BIOS
 
-Alternatively, a modified BIOS allows the user to change the VRAM split in the BIOS setup instead.
+You may have read about needing to flash the BIOS to unlock the VRAM split option in the BIOS
+setup. This was previously required to get the option, but it is now obsolete.
 
-Two common modified BIOS exposes the VRAM split to the user:
-- 3.00 "Chipset Menu" BIOS
-- 5.00 "Unlocked" BIOS
-
-See the [BIOS Flashing Guide](flashing.md) for installing one of these modified BIOS.
-
-When the BIOS has been installed, the VRAM split option is found in:
-- For 3.00 "Chipset Menu" BIOS: Chipset tab -> GFX Configuration
-- For 5.00 "Unlocked" BIOS: NBIO Common Options tab -> GFX Configuration
-
-Now, change the following settings to alter the VRAM split:
-- Change `Integrated Graphics Controller` to `Forces`.
-- Change `UMA Mode` to `UMA_SPECIFIED`.
-- Change `UMA Frame buffer Size` to the desired VRAM amount.
-
-Note: If Option 1 has been used on your BC-250 previously, then the BIOS
-VRAM split setting will not have any effect until you clear CMOS with the jumper.
+Because of the above utility, there is no longer any need to flash BIOS to change VRAM settings.
 
 ---
 
