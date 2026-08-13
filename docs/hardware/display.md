@@ -65,39 +65,40 @@ aplay -l
 - **Use Case:** Most users, TV connections
 - **Note:** DP 1.2 max (1440p @60Hz, some support 1440p @165Hz)
 
-**Active Adapters (Use with Caution):**
-- **Audio:** Often broken or unreliable
+**Active Adapters:**
+- **Audio:** Silent out of the box on many setups. Caused by the board's DisplayPort audio clock, not the adapter, and works with the [DP audio clock fix](../troubleshooting/audio.md)
 - **Cost:** More expensive ($15-30)
-- **Use Case:** Only if you need 4K @120Hz+
-- **Issues:** Audio compatibility problems common
+- **Use Case:** 4K @60Hz+ on HDMI displays, HDMI-CEC
+- **Issues:** Apply the audio fix before writing the adapter off
 
 ### Known Issues with Adapters
 
-!!!warning "Audio Problems with Adapters"
-    Many DP to HDMI adapters break audio functionality. This is a known limitation.
+!!!info "The adapters were never the problem"
+    The "adapters break audio" reports trace back to a bug on the board itself: the firmware programs the DisplayPort audio clock for a reference clock the hardware does not have. Active adapters are real DisplayPort sinks, so they receive that off-spec audio stream and often refuse to lock (silence). Passive adapters make the driver use a different, unaffected clock path, which is why they seem immune. See [DisplayPort Audio: Silence, Desync or Slow Pitch](../troubleshooting/audio.md) for the mechanism and a fix that needs no kernel build.
 
 **Common Symptoms:**
-- Display works, no audio
-- Audio works intermittently
+- Display works, no audio (active adapters: the sink refuses the off-spec stream)
+- Audio plays but slow, out of sync, or with periodic crackle (sinks that tolerate it)
 - Audio dropouts/clicking
 
 **Workarounds:**
-1. Use USB audio adapter/DAC
-2. Use 3.5mm audio cable (no audio output on BC-250)
-3. Use Bluetooth audio
-4. Try different adapter brand
+1. Apply the [DP audio clock fix](../troubleshooting/audio.md), which fixes audio through the adapter you already have
+2. Use a passive adapter (unaffected clock path, but 1080p/1440p limits and no CEC)
+3. Use USB audio adapter/DAC
+4. Use Bluetooth audio
 
 ### Tested Adapter Compatibility
 
 | Adapter Type | Display Works | Audio Works | Notes |
 |--------------|---------------|-------------|-------|
+| UGREEN 8K Active (Realtek RTD2173) | Yes | Yes, with the [DP audio clock fix](../troubleshooting/audio.md) | Silent without the fix. Verified at 4K60 and 1080p120; HDMI-CEC works. Tested by @Weijtmans |
 | Generic Passive | Usually | Sometimes | Hit or miss |
 | Cable Matters Active | Yes | No | 4K works, no audio |
 | Club3D Active | Yes | Sometimes | Sporadic audio issues |
 | StarTech Active | Yes | No | Reliable display, no audio |
 
-!!!info "Audio Adapter Limitation"
-    If you need audio, consider a USB audio adapter ($10-20) as a reliable solution.
+!!!note "The 'No audio' rows predate the root cause discovery"
+    The Cable Matters/Club3D/StarTech results were collected before the [DP audio clock bug](../troubleshooting/audio.md) was identified. The mechanism predicts they fail for the same reason and would work with the fix, but that has not been re-tested. If you own one, re-test with the fix applied and report back.
 
 ## Common Display Problems
 
@@ -315,7 +316,7 @@ HDR support in Linux is improving but still experimental:
 
 ## Audio Solutions
 
-Since audio over HDMI adapters is unreliable, here are alternative solutions:
+Audio through DP-HDMI adapters is fixable in software, see the [DP audio clock fix](../troubleshooting/audio.md). If you'd rather not run that, here are alternative solutions:
 
 ### Option 1: USB Audio Adapter
 
@@ -417,7 +418,7 @@ If your monitor has DisplayPort input AND built-in speakers:
 ### TV Connection (Living Room Gaming)
 - **Display:** 4K TV with HDMI 2.0+
 - **Adapter:** Active DP to HDMI 2.0 adapter
-- **Audio:** Use TV speakers (if adapter supports audio) OR Bluetooth/USB audio
+- **Audio:** TV speakers / soundbar over the adapter works with the [DP audio clock fix](../troubleshooting/audio.md); Bluetooth/USB audio as fallback
 - **Note:** Test adapter audio before permanent setup
 
 ## See Also

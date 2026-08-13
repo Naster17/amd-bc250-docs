@@ -355,24 +355,20 @@ Reduce frequency or increase voltage in governor config.
 - Contains electronics/chip for signal conversion
 - Powered from DP port
 - Supports 4K60Hz, 4K120Hz
-- **Audio does NOT work on BC-250**
+- **Audio:** silent without the [DP audio clock fix](audio.md). The board's fault, not the adapter's
 - Cost: $15-30
 
 ### Known Issues with Active Adapters
 
-!!!warning "Audio Broken on Active Adapters"
-    Active DP-HDMI adapters consistently break audio on BC-250. Video works, audio doesn't.
+!!!info "The silence is the board's audio clock, not the adapter"
+    The BC-250's firmware programs the DisplayPort audio clock ~21% off, so every sample rate comes out ~17.65% slow. An active adapter is a real DisplayPort sink and receives that off-spec stream; most refuse to lock, which reads as "video works, audio doesn't". This was proven adapter-innocent: with an active adapter silent, a single register write restored audio instantly through that same adapter. See [DisplayPort Audio: Silence, Desync or Slow Pitch](audio.md) for the mechanism and the fix.
 
-**Why:** Active adapters re-encode the signal. BC-250's DP audio implementation is non-standard, and active adapters can't properly decode it.
+**Why passive adapters seem immune:** the driver treats a passive DP++ dongle as an HDMI sink and clocks audio from the pixel clock instead of the broken DisplayPort reference clock. A native DP monitor takes the same affected path as an active adapter, but usually plays the stream anyway, just slow and drifting.
 
 **Workarounds:**
-1. Use passive adapter (best solution)
-2. Use USB DAC for audio
-3. Use native DP monitor
-4. Use USB-C headphones
-
-!!!note "Audio delay, low pitch or crackle on a passive adapter or native DP?"
-    That is a separate problem: a spread-spectrum bug in the display driver that affects the DisplayPort output itself, not the adapter. See [DisplayPort Audio: Desync, Delay and Crackle](audio.md).
+1. Apply the [DP audio clock fix](audio.md), which keeps the active adapter and its capabilities (4K60+, CEC)
+2. Use passive adapter (unaffected path, if its resolution limits suit you)
+3. Use USB DAC for audio
 
 ### Recommended Adapters
 
@@ -381,10 +377,9 @@ Reduce frequency or increase voltage in governor config.
 - Cable Matters DP to HDMI adapter
 - Most cheap unbranded passive adapters
 
-**Avoid:**
-- Any adapter advertising "4K120" or "8K"
-- Adapters with USB power ports
-- Adapters with status LEDs (usually active)
+**Active adapters:**
+- "4K120"/"8K"-branded adapters are active adapters: fine for video, but expect no audio until the [DP audio clock fix](audio.md) is applied (a UGREEN 8K unit is verified working with it, including CEC)
+- USB power ports or status LEDs usually indicate an active adapter
 
 ---
 
