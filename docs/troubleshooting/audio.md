@@ -1,6 +1,6 @@
 # DisplayPort Audio: Desync, Delay and Crackle
 
-Audio over the BC-250's DisplayPort output can arrive slightly late, at a slightly low pitch, or with periodic crackle, while video stays perfect. This page explains the actual root cause (a spread-spectrum bug in the display driver, specific to this GPU), how to tell it apart from an adapter problem, and how to fix it.
+Audio over the BC-250's DisplayPort output can arrive late, at a low pitch, or with periodic crackle, while video stays perfect. How bad it gets varies a lot from board to board, from a drift you have to look for up to audio that is unusable. This page explains the actual root cause (a spread-spectrum bug in the display driver, specific to this GPU), how to tell it apart from an adapter problem, and how to fix it.
 
 This is a different problem from [active DP-HDMI adapters breaking audio](display.md#special-case-active-vs-passive-adapters). That one is about the adapter re-encoding the stream. The one on this page is in the kernel and affects the DisplayPort output itself, so it can show up even on a native DP monitor or a passive adapter.
 
@@ -8,12 +8,15 @@ This is a different problem from [active DP-HDMI adapters breaking audio](displa
 
 ## Symptoms
 
-- Audio and video out of sync, usually audio around 100 to 200 ms late
-- Audio pitch slightly too low
+- Audio and video out of sync, with audio falling further behind the longer you play. Reported severity ranges from a drift of 100 to 200 ms up to a constant rate error that accumulates without bound
+- Audio pitch too low, from barely noticeable to obvious
 - Periodic crackle or clicking as the audio buffer drifts
 - Video is unaffected
 
 If instead you get no audio at all on an active adapter, that is the adapter issue, not this one. See [Active vs Passive Adapters](display.md#special-case-active-vs-passive-adapters).
+
+!!!note "How large the error can get"
+    On one board ([#39](https://github.com/elektricM/amd-bc250-docs/issues/39)) the DisplayPort audio clock runs at 39 526 Hz while ALSA reports 48 000 Hz, a constant -17.7 % rate error measured three independent ways. At that magnitude a 30 s file takes 36.5 s and video is a full second behind after five seconds of playback. Display mode and sample rate made no difference. If your symptoms are that severe, this is still the same bug and not a separate one.
 
 ---
 
@@ -52,6 +55,9 @@ cat /proc/asound/card*/eld*
 ```
 
 If `eld_valid` is `1` and the audio format looks correct, but you still hear the delay, pitch or crackle, that points at the reference-clock spread spectrum rather than the adapter or the EDID.
+
+!!!warning "An error count of zero does not rule this out"
+    This bug produces no xruns, so every standard health check looks clean while the crackle continues. The sink never runs dry, the source overflows: the application produces 48 000 frames per second and only around 39 500 drain, so the surplus is discarded. `pw-top` sits at `ERR 0` forever. Do not use xrun counters to rule this out, measure the actual rate instead. Reported in [#39](https://github.com/elektricM/amd-bc250-docs/issues/39).
 
 Capture the EDID with `cat`, not a file-manager copy (copying a sysfs file gives a 0-byte result):
 
