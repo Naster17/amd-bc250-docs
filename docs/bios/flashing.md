@@ -21,6 +21,7 @@ While the stock BIOS includes standard features like fan control, the modded BIO
 - **Dynamic VRAM allocation** (512MB setting that auto-allocates between CPU/GPU)
 - **Custom VRAM splits** beyond the stock 8GB/8GB and 12GB/4GB options
 - **Chipset menu** access for advanced configuration options
+- **All 8 CPU cores** (MeiMeiDXE only) — see [8 Core CPU Unlock](../system/8core-unlock.md)
 
 *Note: Actual overclocking is generally not performed via the BIOS on this platform, and fan control is available on both stock and modded versions.*
 
@@ -29,6 +30,7 @@ While the stock BIOS includes standard features like fan control, the modded BIO
 There are two main versions of the modded BIOS floating around the community:
 
 *   **P3.00 Chipset Menu (Recommended):** This is the community standard. It is the most stable and tested version. It successfully unlocks VRAM allocation and chipset settings without introducing unnecessary instability.
+*   **P3.00 MeiMeiDXE-T-v2:** P3.00 with the chipset menu **plus a `Bc250CoreUnlockDxe` driver that enables all 8 CPU cores** at every boot. From [Forbidden-Darkness](https://github.com/Forbidden-Darkness/AMD-BC-250-UEFI-v2.2-Firmware-Menu-Script). Only worth flashing if you want the core unlock permanent — you can try the cores out first from Linux with no flash at all, see [8 Core CPU Unlock](../system/8core-unlock.md). Note it flashes the boot block, so treat it as the highest-risk option here.
 *   **P5.00_clv:** Based on a newer stock code base. It specifically unlocks **Everything**—every hidden menu and setting available. This includes experimental options like ReBAR (Resizable BAR). However, because it exposes critical debug and chipset settings, it is very easy to brick the board if you change the wrong thing. **Stick to P3.00 unless you are an advanced user who knows exactly what they are doing.**
 
 !!!warning "P5.00_clv availability"

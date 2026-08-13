@@ -8,7 +8,7 @@ The BC-250 features a cut-down PS5 APU (codenamed "Oberon" / "Cyan Skillfish"):
 
 ### CPU Specifications
 
-- **Cores:** 6x Zen 2 cores (2 cores disabled from original 8-core design)
+- **Cores:** 6x Zen 2 cores active out of 8 — the two disabled cores are **not fused off** and can be re-enabled, see [8 Core CPU Unlock](../system/8core-unlock.md)
 - **Base Clock:** ~3.5 GHz
 - **Architecture:** Zen 2 microarchitecture
 - **Instruction Set:** x86-64
@@ -185,7 +185,7 @@ The BC-250 features a cut-down PS5 APU (codenamed "Oberon" / "Cyan Skillfish"):
 
 | Feature | BC-250 | PlayStation 5 |
 |---------|--------|---------------|
-| CPU Cores | 6 cores | 8 cores |
+| CPU Cores | 6 cores (8 [unlockable](../system/8core-unlock.md)) | 8 cores |
 | CPU Clock | ~3.5 GHz fixed | Up to 3.5 GHz (variable) |
 | GPU CUs | 24 CUs | 36 CUs |
 | GPU Clock | 2000 MHz max | 2230 MHz (variable) |
