@@ -202,6 +202,9 @@ Alternative power connectors compatible with Molex Micro-Fit BMI [444280801](htt
 | `LED1` | Active-low LED output - mirrors green backplane LED |
 | `LED2` | Active-low LED output - mirrors red backplane LED |
 
+!!!warning "The LED1 and LED2 colours are unverified"
+    Which of the two carries green and which carries red has been questioned in [#42](https://github.com/elektricM/amd-bc250-docs/issues/42), and the assignment above has no source in this repo's history. Treat it as unconfirmed and check on your own board before wiring anything that depends on the colour. The active-low behaviour itself is not in doubt.
+
 Use both J2000 and J2001 for redundancy when powering from these connectors.
 
 ## SPI Flash Header
