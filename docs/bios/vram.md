@@ -46,12 +46,42 @@ Reboot to apply the change.
 Even though this is a Linux program, the change is stored into CMOS, so it only needs to be ran 
 once and not at every boot.
 
+## Where the setting lives, and when it gets lost
+
+`bc250memcfg` writes the split into **extended CMOS** (battery-backed RTC RAM, via I/O ports
+`0x72`/`0x73`, block `0x90–0xAB` plus a checksum), **not** into the SPI flash chip that holds the
+BIOS. That has practical consequences, verified on a real board:
+
+- **It survives a BIOS reflash.** A 6 GB split stayed intact through a full BIOS flash with no
+  re-run of memcfg needed.
+- **It is lost on a CMOS clear or battery pull.** Since a CMOS clear is the standard step after
+  flashing a BIOS, check the split afterwards and re-apply if it reads small.
+- **Normal power-cycling is safe.** Powering off or unplugging the PSU is not a CMOS clear; the
+  RTC battery keeps the setting.
+
+Checking the active split:
+
+```bash
+cat /sys/class/drm/card*/device/mem_info_vram_total
+# 6442450944 = 6 GB split, for example
+
+free -h
+# System RAM should be 16GB minus the split (~9.4 GB with a 6 GB split).
+# This confirms the split is live this boot rather than a stale value
+```
+
 ## A note on modified BIOS
 
 You may have read about needing to flash the BIOS to unlock the VRAM split option in the BIOS
 setup. This was previously required to get the option, but it is now obsolete.
 
 Because of the above utility, there is no longer any need to flash BIOS to change VRAM settings.
+
+!!!note "There may be no VRAM menu item at all"
+    Some video guides show a VRAM/UMA selector in the BIOS setup screens. On at least one common
+    community 3.00-based modded BIOS, a menu-by-menu walk of the entire setup found **no UMA or
+    frame-buffer size option anywhere**. If your BIOS doesn't have it either, that is normal.
+    Use memcfg and don't go looking for the menu.
 
 ---
 
@@ -109,6 +139,29 @@ Applying the kernel boot param differs depending on your distro:
 		- See [CachyOS Boot Manager   Configuration](https://wiki.cachyos.org/configuration/boot_manager_configuration/#kernel-command-configuration)
 - On others:
 	- Determine which bootloader your distro uses and consult its documentation.
+
+## A second crash mechanism the kernel parameter does not fix
+
+There is a separate way the 512MB split kills game sessions, even when total VRAM usage is
+nowhere near the dynamic ceiling: **scanout framebuffers must live in the real (minimum) VRAM
+carve; dynamically borrowed GTT pages don't qualify.**
+
+Root-caused from the journal on a real crash (Cyberpunk 2077 under gamescope, 512MB split):
+the game's vkd3d device filled the 512MB device-local heap, the compositor's next framebuffer
+could not be pinned, and the whole session died. The journal signature to look for:
+
+```text
+amdgpu: pin failed
+[drm] Failed to pin framebuffer with error -12
+gamescope: drm: fatal flip error, aborting
+```
+
+followed by gamescope aborting (SIGABRT). Notably there is **no GPU hang and no OOM-kill**:
+the system is fine, only the display path ran out of pinnable memory.
+
+For this failure `ttm.pages_limit` does not help, because it only raises the *dynamic* ceiling.
+The fix is a larger minimum split. 6 GB (`UMA_SIZE 6144`) resolved it and the crash never
+returned.
 
 ---
 
