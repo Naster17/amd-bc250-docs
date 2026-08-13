@@ -71,6 +71,15 @@ make
 sudo make install
 ```
 
+!!!warning "This does not work as-is on atomic images (Bazzite, Bluefin, Silverblue)"
+    On OSTree-based systems `/usr/lib/modules` is read-only, so the build succeeds and then `make install` fails on the copy:
+
+    ```
+    cp: cannot create '/lib/modules/.../nct6687.ko': Read-only file system
+    ```
+
+    The module never lands, which is why `modprobe` afterwards reports it missing. This is not a build failure and rerunning it will not help. Packaging the module through `akmods` or building inside a toolbox is the route on those distros. See [#30](https://github.com/elektricM/amd-bc250-docs/issues/30).
+
 **Step 2:** Configure modprobe to use nct6687 and blacklist nct6683:
 
 ```bash
