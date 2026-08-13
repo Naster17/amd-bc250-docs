@@ -77,30 +77,27 @@ glxinfo | grep "OpenGL version"
 
 ### Debian
 
-!!!warning "Debian/Linux Mint Mesa Availability"
-    **Debian stable/testing & Linux Mint:** Mesa 25.1+ may not be available in standard package repositories. Consider using `debian-experimental`, backports, or compiling from source if your distro is pinned to older versions.
-
-**Mesa 25.1.3+ available in experimental:**
+On Debian 13 (trixie), backports carries a recent enough Mesa. There is no reason to reach for experimental or sid anymore.
 
 ```bash
-# Add experimental repo (if not already added)
-echo "deb http://deb.debian.org/debian experimental main" | sudo tee /etc/apt/sources.list.d/experimental.list
+# Add trixie-backports
+echo "deb http://deb.debian.org/debian trixie-backports main" | sudo tee /etc/apt/sources.list.d/backports.list
 
-# Update package lists
 sudo apt update
 
-# Install Mesa from experimental
-sudo apt install -t experimental mesa-vulkan-drivers libgl1-mesa-dri mesa-utils
+# Install Mesa from backports
+sudo apt install -t trixie-backports mesa-vulkan-drivers libgl1-mesa-dri mesa-utils
 
 # Verify
 glxinfo | grep "OpenGL version"
 ```
 
-!!!info "Debian sid (Jan 2026)"
-    Mesa 26 + kernel 6.18.3 confirmed working on Debian sid as of January 2026.
+At the time of writing, `trixie-backports` ships `mesa 26.1.2-1~bpo13+1`, which is well past the 25.1 floor this board needs. Reported in [#37](https://github.com/elektricM/amd-bc250-docs/issues/37).
 
-!!!warning "Experimental Repo"
-    Debian experimental packages may have dependencies on other experimental packages. Use with caution.
+Backports is built against stable, so it does not drag in a chain of unstable dependencies the way experimental does. Prefer it.
+
+!!!warning "Older Debian and Linux Mint"
+    On Debian 12 (bookworm), `bookworm-backports` only reaches `mesa 25.0.7-2~bpo12+1`, which lands just under the 25.1 floor. Mint releases based on bookworm inherit that. Those either compile from source or move to a trixie base.
 
 ### Ubuntu
 
