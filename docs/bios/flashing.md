@@ -38,7 +38,7 @@ There are two main versions of the modded BIOS floating around the community:
 
 ## Flashing Methods
 
-There are two ways to flash the BIOS:
+There are three ways to flash the BIOS:
 
 ### Method 1: USB Flashing (Recommended)
 
@@ -63,6 +63,18 @@ There are two ways to flash the BIOS:
 - Requires CH341A/CH347 programmer
 - More technical
 - Slower process
+
+### Method 3: flashrom from Linux (Advanced)
+
+**Pros:**
+- No USB stick, no EFI shell, no programmer: backup and flash from the running OS
+- Cannot touch the wrong chip: `-p internal` only reaches the main BIOS flash
+- Staged writes can leave the boot block untouched, keeping crisis recovery intact
+
+**Cons:**
+- Advanced users only, you are writing the chip the board is running from
+- Needs a pre-flight checklist and a region diff to be done safely
+- Not the community-standard route
 
 !!!tip "Recommendation"
     While USB flashing is convenient, owning a CH347 programmer before you start is highly recommended as a safety net. If USB flashing fails, the board is unusable until you use a hardware programmer.
@@ -286,6 +298,91 @@ The board features a 2.54mm header specifically for flashing. This is safer than
 
 !!!warning "Safety Notice"
     The modded BIOS exposes many settings that are untested. Changing random voltages, timings, or unknown chipset options can permanently damage the board. **If you don't know what it does, do not touch it.**
+
+## Method 3: Flashing from Linux with flashrom (Advanced)
+
+The board's BIOS chip can be read and written from the running OS with `flashrom -p internal`. No USB stick, no EFI shell, no programmer. This procedure was verified start to finish on a real board (staged write, byte-identical read-back, clean reboot onto the new firmware). Tested by @Weijtmans on Bazzite (Fedora Atomic 43), kernel 6.17.7-ba29.
+
+!!!danger "Advanced users only"
+    You are erasing and rewriting the flash chip of the board you are booted from. Linux keeps running from RAM while you do it, but a mistake still means the next boot fails, and then your only ways back are USB recovery or a hardware programmer. Read the whole section before typing anything.
+
+A safety property worth knowing: the board has [two flash chips](../hardware/pinouts.md): the 16MB BIOS chip on the FCH SPI bus and the 512KB SuperIO chip (fan control) on LPC. `-p internal` can physically only reach the FCH SPI chip, so the "accidentally flashed the SuperIO" failure mode of the programmer route cannot happen here.
+
+### 1. Back up your current BIOS, twice
+
+```bash
+sudo flashrom -p internal -r bios-backup-1.rom
+sudo flashrom -p internal -r bios-backup-2.rom
+cmp bios-backup-1.rom bios-backup-2.rom
+# No output = the two reads are byte-identical = the dump is trustworthy
+sha256sum bios-backup-1.rom
+```
+
+Two independent, identical reads prove the dump is good. Without a hardware programmer this backup is your **only** recovery image. Record the hash and store a copy off the board.
+
+flashrom will identify the chip. Boards vary: some carry a Winbond W25Q128, others a Macronix (`MX25L12835F/MX25L12873F`, 16384 kB). Pass the identified chip explicitly with `-c` in every later command.
+
+### 2. Pre-flight checklist
+
+Each of these can make an internal flash fail or refuse:
+
+| Check | Command | Must be |
+|---|---|---|
+| Kernel lockdown | `cat /sys/kernel/security/lockdown` | `[none]` |
+| Secure Boot | `mokutil --sb-state` | disabled |
+| Firmware daemons | `systemctl stop fwupd` | stopped during the flash |
+| Chip write protection | flashrom prints the status register | SRWD and BP0–BP3 all clear |
+
+flashrom shows a scary warning about internal flashing on laptops with an EC sharing the flash. On the BC-250 the IMC (AMD's embedded controller) is not active and no EC shares the BIOS chip, which is what makes that warning moot on this board.
+
+### 3. Diff first, then write only what differs
+
+flashrom cannot enumerate AMD FCH protected ranges, so a naive full-chip write could die mid-chip on a protected region and leave a partial image, in other words a brick. The safe pattern is to write **only the regions that actually differ** between your dump and the target image, in stages, starting with a small low-risk region:
+
+```bash
+# Which 64KB blocks differ between current BIOS and target?
+cmp -l bios-backup-1.rom new-bios.rom | awk '{print int(($1-1)/65536)}' | uniq
+```
+
+For the common community 3.00-lineage images, the differences fall entirely in the NVRAM region (`0x000000–0x01ffff`) and a varstore/DXE range in the middle of the image; the top 512KB **boot block is byte-identical across the lineage**. That matters: an untouched boot block keeps AMI's USB crisis recovery working even if a later stage fails.
+
+!!!warning "If the boot block differs, stop"
+    If the block diff shows differences in the last 512KB of the chip, this method's safety argument does not hold for your image pair. Use the USB method instead.
+
+Write with a flashrom layout file, verifying between stages. NVRAM first (proves erase/write/verify works on your board while the rest is untouched), then the remaining differing regions:
+
+```bash
+cat > layout.txt <<'EOF'
+000000:01ffff nvram
+0ab0000:0abffff varstore
+0ae0000:0c2ffff dxe
+EOF
+# Region bounds above are for the community 3.00-lineage images.
+# Derive your own from the block diff if yours differ.
+
+sudo flashrom -p internal -c "<your chip>" -l layout.txt -i nvram -w new-bios.rom
+sudo flashrom -p internal -c "<your chip>" -l layout.txt -i varstore -i dxe -w new-bios.rom
+```
+
+### 4. Verify before rebooting
+
+```bash
+sudo flashrom -p internal -r readback.rom
+sha256sum readback.rom new-bios.rom
+# Hashes match = the chip now holds exactly the target image. Only then reboot.
+```
+
+On the verified run the full-chip read-back hash matched the target ROM exactly, with the boot block never erased or written.
+
+### 5. CMOS clear and reconfigure
+
+Same as the USB method: clear CMOS afterwards and redo your BIOS settings, see [The Critical CMOS Clear](#step-6-the-critical-cmos-clear).
+
+To restore your original BIOS later (as long as Linux still boots):
+
+```bash
+sudo flashrom -p internal -c "<your chip>" -w bios-backup-1.rom
+```
 
 ## Post-Flash Configuration
 
