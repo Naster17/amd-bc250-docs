@@ -225,6 +225,35 @@ glxinfo | grep "OpenGL renderer"
 !!!tip "Use Native DisplayPort"
     For high refresh rate 4K gaming, use a native DisplayPort monitor instead of adapter.
 
+## HDMI-CEC Through Active Adapters
+
+The BC-250 can join an HDMI-CEC bus (TV power on/off, input switching, TV-remote control) even though it has no HDMI port: a CEC-capable **active** DP-to-HDMI adapter tunnels CEC over the DisplayPort AUX channel, and the mainline kernel picks it up (`CONFIG_DRM_DISPLAY_DP_AUX_CEC`). No extra hardware, no Pulse-Eight dongle.
+
+**Verified working:** UGREEN 8K active DP-HDMI adapter (Realtek RTD2173). `/dev/cec0` appears, the board registers as a CEC 2.0 Playback Device (logical address 8), and traffic is bidirectional: the TV answers a power-status query in 87 ms and an OSD-name query in 29 ms. Tested by @Weijtmans on Bazzite (Fedora Atomic 43), kernel 6.17.7-ba29, Samsung TV.
+
+!!!note "The kernel's CEC adapter list is not a compatibility matrix"
+    The kernel documentation names a few known CEC-tunnelling chipsets (Parade PS175/PS176/PS186, MegaChips 2900, some Club3D models). That list is one maintainer's observations; the RTD2173 is not on it and works fine. Don't rule an adapter out because its chipset isn't listed; check for `/dev/cec0`.
+
+**Passive adapters physically cannot do CEC.** CEC tunnelling lives in a DPCD register block (0x3000) that only a real DP sink implements. You can verify your adapter's support directly:
+
+```bash
+sudo dd if=/dev/drm_dp_aux0 bs=1 skip=$((0x3000)) count=1 2>/dev/null | xxd
+# Output = CEC-capable (DPCD CEC block present)
+# No output = no CEC tunnelling (all passive adapters, many active ones)
+```
+
+**Quick start** (`cec-ctl` is in `v4l-utils`):
+
+```bash
+ls /dev/cec*
+# Should show: /dev/cec0
+
+cec-ctl -d /dev/cec0 --playback   # register as a Playback device on the bus
+cec-ctl -d /dev/cec0 -S           # scan: shows the TV, audio system, other devices
+```
+
+`/dev/cec0` is owned `root:video`, so add your user to the `video` group for non-root use, and remember group changes only apply to new logins.
+
 ## Multiple Display Support
 
 ### Limitations
