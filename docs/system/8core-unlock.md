@@ -27,6 +27,13 @@ poll 0x3B10A80 until == 1 (ok) or 0xFC..0xFF (error)
 
 CPU topology is fixed by firmware at reset, so the cores do not appear until the platform re-enumerates.
 
+!!!danger "Stop the governor first, including for reads"
+    `cyan-skillfish-governor-smu` drives the same `0xB8`/`0xBC` index/data pair on `00:00.0`. Every SMN access here is a write to the index register followed by a read or write of the data register, and the governor can land between the two. You then read or write a completely different SMN address than the one you selected.
+
+    Stop the service before touching the mailbox, do the work, start it again. This applies to reads as much as writes, so a "just checking the mask" one-liner is not safe either.
+
+    Reported from a second board in [#41](https://github.com/elektricM/amd-bc250-docs/pull/41).
+
 !!!important "Warm reset keeps it, cold boot loses it"
     | reset | result |
     |---|---|
@@ -103,6 +110,7 @@ Scaling is best in threaded workloads. Anything memory-bound is still limited by
 - **GPU frequency reporting breaks.** After unlocking, `pp_dpm_sclk` reports nonsense (for example `1: 15Mhz` where it should read `1500Mhz`) and `gpu_busy_percent` may return empty. The GPU still clocks correctly according to your [governor](governor.md) curve — this is a monitoring bug, not a performance one. Reported by the BC-250 Telegram community and reproduced on the tested board.
 - **Your ACPI tables need updating.** The 6-core SSDTs leave CPUs 12-15 without C-states — see [below](#acpi-tables-must-be-updated-too).
 - **Any existing overclock or undervolt is no longer valid.** See [below](#your-overclock-needs-re-validating).
+- **The upstream detect tool is a tuner, not a diagnostic.** Its core-detection path applies an SMU frequency and voltage state as a side effect, which resets any undervolt scale you had, and it writes an `overclock.conf` into the working directory. Do not reach for it as a read-only status check. Reported from a second board in [#41](https://github.com/elektricM/amd-bc250-docs/pull/41).
 - **Other mask values may exist.** Every board checked so far reads `0x77`, but a board that masks a different pair of cores would read something else. The Linux tool refuses to act on any mask it does not recognise rather than guessing.
 
 ## ACPI Tables Must Be Updated Too
