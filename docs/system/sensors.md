@@ -360,6 +360,8 @@ The asterisk (*) indicates the current active clock speed.
 
 ## Fan Speed Monitoring and Control
 
+Fan speeds, PWM control and fan curves have their own page: [Fan Control](fan-control.md). The basics:
+
 ### Viewing Fan Speeds
 
 From `sensors` output, look for the `nct6686-isa-0a20` section:
@@ -409,7 +411,7 @@ echo 80 | sudo tee $HWMON/pwm2
 ```
 
 !!!info "PWM Resets on Reboot"
-    PWM values set manually are not persistent across reboots. Use CoolerControl or a systemd service to set fan speed at boot.
+    PWM values set manually are not persistent across reboots. For a persistent setup — a temperature-based fan curve daemon or a manual-control CLI — see the dedicated [Fan Control](fan-control.md) page.
 
 ---
 
@@ -722,7 +724,7 @@ From Discord testing:
    cd nct6687d && make && sudo make install
    sudo modprobe nct6687 force=true
    ```
-   On atomic/immutable distros `make install` fails because the kernel tree is read-only. See the [Immutable / Atomic Distros](#immutable--atomic-distros-bazzite-silverblue-fedora-coreos) subsection above.
+   On atomic/immutable distros `make install` fails because the kernel tree is read-only. See the [Immutable / Atomic Distros](#immutable-atomic-distros-bazzite-silverblue-fedora-coreos) subsection above.
 
 !!!info "nct6683 vs nct6687"
     `nct6683` is read-only (temperature, voltage, fan speed monitoring). `nct6687` provides full read+write access including PWM fan control. For fan curves and manual speed control, you need `nct6687`.
